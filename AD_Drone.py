@@ -42,6 +42,7 @@ consumer_destinos = KafkaConsumer(
     "destinos",
     bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
     value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+    group_id='drone-' + dron.id,
 )
 
 
