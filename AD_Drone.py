@@ -179,6 +179,8 @@ def editar_perfil():
 
 
 def start():
+    theard_read_figuras = threading.Thread(target=read_figuras)
+    theard_read_figuras.start()
     while True:
         print("¿Qué quieres hacer?")
         print("1. Darse de alta")
