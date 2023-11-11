@@ -92,6 +92,7 @@ def darse_de_alta():
                 send("alta", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
+                dron.token = response
 
             print("Envio al Registry: FIN")
             send(FIN, client)
@@ -192,6 +193,37 @@ def recuperar_token():
             print("Envio al Registry: FIN")
             send(FIN, client)
             client.close()
+            dron.dado_de_alta = True
+            break
+        except ConnectionRefusedError:
+            print("Registry is not available. Please try again later.")
+            sleep(5)
+        except ConnectionResetError:
+            print(
+                "The connection was closed by the remote host. Please try again later."
+            )
+            sleep(5)
+
+
+def autentificarse():
+    while True:
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDRR)
+            print(f"Establecida conexión en [{ADDRR}]")
+
+            if dron.token is None:
+                print("El dron no tiene un token.")
+            else:
+                print("Envio al Registry: autentificar", dron.token)
+                send(f"autentificar {dron.token}", client)
+                response = client.recv(2048).decode(FORMAT)
+                print("Recibo del Registry:", response)
+                dron.autentificado = True
+
+            print("Envio al Registry: FIN")
+            send(FIN, client)
+            client.close()
             break
         except ConnectionRefusedError:
             print("Registry is not available. Please try again later.")
@@ -210,7 +242,8 @@ def start():
         print("2. Darse de baja")
         print("3. Editar perfil")
         print("4. Recuperar token")
-        print("5. Salir")
+        print("5. Autentificarse")
+        print("6. Salir")
         opcion = input("Opción: ")
 
         if opcion == "1":
@@ -226,6 +259,9 @@ def start():
             recuperar_token()
 
         elif opcion == "5":
+            autentificarse()
+
+        elif opcion == "6":
             print("Saliendo...")
             break
 
