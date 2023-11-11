@@ -93,7 +93,7 @@ def send_figuras():
                     while True:
                         try:
                             send_figura(figura)
-                            sent_figuras.add(figura)  # mark the figura as sent
+                            sent_figuras.append(figura)
                             break
                         except KafkaError as e:
                             handle_error(e)
@@ -107,6 +107,10 @@ def start():
     print(f"[LISTENING] Engine a la escucha en {SERVER}:{PORT}")
     thread_read_json = threading.Thread(target=read_json)
     thread_read_json.start()
+    while True:
+        start_input = input("Escriba 'start' para iniciar el espectaculo: ")
+        if start_input == "start":
+            break
     thread_send_figuras = threading.Thread(target=send_figuras)
     thread_send_figuras.start()
 
