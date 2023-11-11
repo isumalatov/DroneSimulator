@@ -47,83 +47,95 @@ def send(msg, client):
 
 
 def darse_de_alta():
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(ADDRR)
-        print(f"Establecida conexión en [{ADDRR}]")
+    while True:
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDRR)
+            print(f"Establecida conexión en [{ADDRR}]")
 
-        if dron.token is not None:
-            print("El dron ya está dado de alta.")
-        else:
-            alias = input("Alias del dron: ")
-            dron.alias = alias
-            print(f"ID único del dron: {dron.id}")
-            print("Envio al Registry: alta", dron.id, dron.alias)
-            send(f"alta {dron.id} {dron.alias}", client)
-            response = client.recv(2048).decode(FORMAT)
-            print("Recibo del Registry:", response)
-            dron.token = response
+            if dron.token is not None:
+                print("El dron ya está dado de alta.")
+            else:
+                alias = input("Alias del dron: ")
+                dron.alias = alias
+                print(f"ID único del dron: {dron.id}")
+                print("Envio al Registry: alta", dron.id, dron.alias)
+                send(f"alta {dron.id} {dron.alias}", client)
+                response = client.recv(2048).decode(FORMAT)
+                print("Recibo del Registry:", response)
+                dron.token = response
 
-        print("Envio al Registry: FIN")
-        send(FIN, client)
-        client.close()
-        dron.dado_de_alta = True
-    except ConnectionRefusedError:
-        print("Registry is not available. Please try again later.")
-    except ConnectionResetError:
-        print("The connection was closed by the remote host. Please try again later.")
+            print("Envio al Registry: FIN")
+            send(FIN, client)
+            client.close()
+            dron.dado_de_alta = True
+            break
+        except ConnectionRefusedError:
+            print("Registry is not available. Please try again later.")
+            sleep(5)
+        except ConnectionResetError:
+            print("The connection was closed by the remote host. Please try again later.")
+            sleep(5)
 
 
 def darse_de_baja():
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(ADDRR)
-        print(f"Establecida conexión en [{ADDRR}]")
+    while True:
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDRR)
+            print(f"Establecida conexión en [{ADDRR}]")
 
-        if dron.token is None:
-            print("El dron no está dado de alta.")
-        else:
-            dron_id = input("ID del dron a dar de baja: ")
-            print("Envio al Registry: baja", dron_id)
-            send(f"baja {dron_id}", client)
-            response = client.recv(2048).decode(FORMAT)
-            print("Recibo del Registry:", response)
-            dron.token = None
+            if dron.token is None:
+                print("El dron no está dado de alta.")
+            else:
+                dron_id = input("ID del dron a dar de baja: ")
+                print("Envio al Registry: baja", dron_id)
+                send(f"baja {dron_id}", client)
+                response = client.recv(2048).decode(FORMAT)
+                print("Recibo del Registry:", response)
+                dron.token = None
 
-        print("Envio al Registry: FIN")
-        send(FIN, client)
-        client.close()
-        dron.dado_de_alta = False
-    except ConnectionRefusedError:
-        print("Registry is not available. Please try again later.")
-    except ConnectionResetError:
-        print("The connection was closed by the remote host. Please try again later.")
+            print("Envio al Registry: FIN")
+            send(FIN, client)
+            client.close()
+            dron.dado_de_alta = False
+            break
+        except ConnectionRefusedError:
+            print("Registry is not available. Please try again later.")
+            sleep(5)
+        except ConnectionResetError:
+            print("The connection was closed by the remote host. Please try again later.")
+            sleep(5)
 
 
 def editar_perfil():
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(ADDRR)
-        print(f"Establecida conexión en [{ADDRR}]")
+    while True:
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDRR)
+            print(f"Establecida conexión en [{ADDRR}]")
 
-        if dron.token is None:
-            print("El dron no está dado de alta.")
-        else:
-            dron_id = input("ID del dron a editar: ")
-            new_alias = input("Nuevo alias: ")
-            print("Envio al Registry: editar", dron_id, new_alias)
-            send(f"editar {dron_id} {new_alias}", client)
-            response = client.recv(2048).decode(FORMAT)
-            print("Recibo del Registry:", response)
-            dron.alias = new_alias
+            if dron.token is None:
+                print("El dron no está dado de alta.")
+            else:
+                dron_id = input("ID del dron a editar: ")
+                new_alias = input("Nuevo alias: ")
+                print("Envio al Registry: editar", dron_id, new_alias)
+                send(f"editar {dron_id} {new_alias}", client)
+                response = client.recv(2048).decode(FORMAT)
+                print("Recibo del Registry:", response)
+                dron.alias = new_alias
 
-        print("Envio al Registry: FIN")
-        send(FIN, client)
-        client.close()
-    except ConnectionRefusedError:
-        print("Registry is not available. Please try again later.")
-    except ConnectionResetError:
-        print("The connection was closed by the remote host. Please try again later.")
+            print("Envio al Registry: FIN")
+            send(FIN, client)
+            client.close()
+            break
+        except ConnectionRefusedError:
+            print("Registry is not available. Please try again later.")
+            sleep(5)
+        except ConnectionResetError:
+            print("The connection was closed by the remote host. Please try again later.")
+            sleep(5)
 
 
 def start():
