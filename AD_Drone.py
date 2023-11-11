@@ -206,7 +206,7 @@ def autentificarse():
                 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client.connect(ADDRE)
                 print(f"Establecida conexión en [{ADDRE}]")
-                print("Envio al Engine: autentificar", dron.token)
+                print("Envio al Engine: autentificar",dron.id, dron.token)
                 send(f"autentificar {dron.id} {dron.token}", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Engine:", response)
