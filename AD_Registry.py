@@ -78,13 +78,15 @@ def handle_client(conn, addr):
                     "INSERT INTO drones (dron_id, alias, token) VALUES (?, ?, ?)",
                     (dron_id, alias, token),
                 )
-                conn.send(token.encode(FORMAT))
+                conn.send(f"{dron_id} {alias} {token}".encode(FORMAT))
 
             elif action == "baja":
+                dron_id = input[1]
                 cursor.execute("DELETE FROM drones WHERE dron_id = ?", (dron_id,))
                 conn.send(f"¡Dron con ID {dron_id} dado de baja!".encode(FORMAT))
 
             elif action == "editar":
+                dron_id = input[1]
                 new_alias = input[2]
                 cursor.execute(
                     "UPDATE drones SET alias = ? WHERE dron_id = ?",
@@ -111,13 +113,14 @@ def handle_client(conn, addr):
 
 
 def start():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(ADDR)
-    server.listen()
     print(f"[LISTENING] Registry a la escucha en {SERVER}:{PORT}")
     borrar_tabla_input = input("¿Borrar la tabla de drones? (s/n): ")
     if borrar_tabla_input == "s":
         drop_table()
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(ADDR)
+    server.listen()
+    print("[WAITING] Esperando conexiones...")
     while True:
         conn, addr = server.accept()
         thread = threading.Thread(target=handle_client, args=(conn, addr))

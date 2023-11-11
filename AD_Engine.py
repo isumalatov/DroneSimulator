@@ -15,6 +15,8 @@ class Engine:
         self.espacio_aereo = [
             [0] * 20 for _ in range(20)
         ]  # Matriz 20x20 para simular el espacio aéreo
+        self.started = False
+        self.drones = []
 
 
 engine = Engine()
@@ -32,6 +34,22 @@ SERVER = socket.gethostbyname(socket.gethostname())
 ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 FIN = "FIN"
+
+
+# Crear una conexión y un cursor específicos para cada hilo
+local = threading.local()
+
+
+def get_connection():
+    if not hasattr(local, "conn"):
+        local.conn = sqlite3.connect("database.db")
+    return local.conn
+
+
+def get_cursor():
+    conn = get_connection()
+    cursor = conn.cursor()
+    return cursor
 
 
 producer = KafkaProducer(
@@ -77,6 +95,71 @@ def read_json():
         sleep(5)  # wait for 5 seconds before checking the file again
 
 
+def handle_client(conn):
+    while True:
+        msg_length = conn.recv(HEADER).decode(FORMAT)
+        if msg_length:
+            msg_length = int(msg_length)
+            msg = conn.recv(msg_length).decode(FORMAT)
+            if msg == FIN:
+                break
+            else:
+                input = msg.split(" ")
+                action = input[0]
+                dron_id = input[1]
+                dron_token = input[2]
+                cursor = get_cursor()
+
+                if (
+                    action == "autentificarse"
+                    and engine.started == False
+                    and len(engine.drones) <= MAX_CONEXIONES
+                ):
+                    if dron_id in engine.drones:
+                        conn.send("Ya estás autentificado".encode(FORMAT))
+                    else:
+                        cursor.execute(
+                            "SELECT token FROM drones WHERE id = ?", (dron_id,)
+                        )
+                        token = cursor.fetchone()
+                        if token:
+                            if token[0] == dron_token:
+                                conn.send("Autentificación correcta".encode(FORMAT))
+                                engine.drones.append(dron_id)
+
+                            else:
+                                conn.send("Autentificación erronea".encode(FORMAT))
+
+                        else:
+                            conn.send("Autentificacion erronea".encode(FORMAT))
+
+                elif action == "autentificarse" and engine.started == True:
+                    conn.send(
+                        "OOppsss... COMENZÓ EL ESPECTÁCULO. Tendrás que esperar a que termine".encode(
+                            FORMAT
+                        )
+                    )
+
+                elif action == "autentificarse" and len(engine.drones) > MAX_CONEXIONES:
+                    conn.send(
+                        "OOppsss... DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(
+                            FORMAT
+                        )
+                    )
+
+    conn.close()
+
+
+def handle_conexions():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(ADDR)
+    server.listen()
+    while True:
+        conn = server.accept()
+        thread = threading.Thread(target=handle_client, args=(conn,))
+        thread.start()
+
+
 def send_figura(figura):
     producer.send("destinos", value=figura)
     producer.flush()
@@ -110,12 +193,15 @@ def send_figuras():
 
 def start():
     print(f"[LISTENING] Engine a la escucha en {SERVER}:{PORT}")
-    thread_read_json = threading.Thread(target=read_json)
-    thread_read_json.start()
+    thread_handle_conexions = threading.Thread(target=handle_conexions)
+    thread_handle_conexions.start()
     while True:
         start_input = input("Escriba 'start' para iniciar el espectaculo: ")
         if start_input == "start":
+            engine.started = True
             break
+    thread_read_json = threading.Thread(target=read_json)
+    thread_read_json.start()
     thread_send_figuras = threading.Thread(target=send_figuras)
     thread_send_figuras.start()
 

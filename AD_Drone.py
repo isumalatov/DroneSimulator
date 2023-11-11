@@ -12,12 +12,11 @@ from kafka.errors import KafkaError
 
 class Drone:
     def __init__(self):
-        self.id = None
+        self.id = 0
         self.alias = None
         self.token = None
-        self.estado = False
-        self.position = [0, 0]
-        self.positionfin = [0, 0]
+        self.dado_de_alta = False
+        self.autentificado = False
 
 
 dron = Drone()
@@ -89,10 +88,14 @@ def darse_de_alta():
                 send("alta", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
-                dron.token = response
+                input = response.split(" ")
+                dron.id = input[0]
+                dron.alias = input[1]
+                dron.token = input[2]
                 print("Envio al Registry: FIN")
                 send(FIN, client)
                 client.close()
+                dron.dado_de_alta = True
                 break
             except ConnectionRefusedError:
                 print("Registry is not available. Please try again later.")
@@ -122,6 +125,7 @@ def darse_de_baja():
                 print("Envio al Registry: FIN")
                 send(FIN, client)
                 client.close()
+                dron.dado_de_alta = False
                 break
             except ConnectionRefusedError:
                 print("Registry is not available. Please try again later.")
@@ -181,6 +185,7 @@ def recuperar_token():
                 print("Envio al Registry: FIN")
                 send(FIN, client)
                 client.close()
+                dron.dado_de_alta = True
                 break
             except ConnectionRefusedError:
                 print("Registry is not available. Please try again later.")
@@ -202,13 +207,14 @@ def autentificarse():
                 client.connect(ADDRE)
                 print(f"Establecida conexión en [{ADDRE}]")
                 print("Envio al Engine: autentificar", dron.token)
-                send(f"autentificar {dron.token}", client)
+                send(f"autentificar {dron.id} {dron.token}", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Engine:", response)
                 print("Envio al Engine: FIN")
                 send(FIN, client)
                 client.close()
-                break
+                if response == "Autentificación correcta":
+                    dron.autentificado = True
             except ConnectionRefusedError:
                 print("Engine is not available. Please try again later.")
                 sleep(5)
@@ -220,6 +226,7 @@ def autentificarse():
 
 
 def start():
+    thread_read_figuras = threading.Thread(target=read_figuras)
     while True:
         print("¿Qué quieres hacer?")
         print("1. Darse de alta")
@@ -244,6 +251,8 @@ def start():
 
         elif opcion == "5":
             autentificarse()
+            if dron.autentificado:
+                thread_read_figuras.start()
 
         elif opcion == "6":
             print("Saliendo...")
