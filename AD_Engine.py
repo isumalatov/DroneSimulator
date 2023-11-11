@@ -85,7 +85,7 @@ def handle_error(e):
 
 
 def send_figuras():
-    sent_figuras = set()  # keep track of the figuras that have been sent
+    sent_figuras = []  # keep track of the figuras that have been sent
     try:
         while True:
             for figura in engine.figuras:
