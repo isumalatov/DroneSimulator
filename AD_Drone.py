@@ -74,7 +74,9 @@ def darse_de_alta():
             print("Registry is not available. Please try again later.")
             sleep(5)
         except ConnectionResetError:
-            print("The connection was closed by the remote host. Please try again later.")
+            print(
+                "The connection was closed by the remote host. Please try again later."
+            )
             sleep(5)
 
 
@@ -104,7 +106,9 @@ def darse_de_baja():
             print("Registry is not available. Please try again later.")
             sleep(5)
         except ConnectionResetError:
-            print("The connection was closed by the remote host. Please try again later.")
+            print(
+                "The connection was closed by the remote host. Please try again later."
+            )
             sleep(5)
 
 
@@ -134,7 +138,9 @@ def editar_perfil():
             print("Registry is not available. Please try again later.")
             sleep(5)
         except ConnectionResetError:
-            print("The connection was closed by the remote host. Please try again later.")
+            print(
+                "The connection was closed by the remote host. Please try again later."
+            )
             sleep(5)
 
 
@@ -159,6 +165,9 @@ def start():
         elif opcion == "4":
             print("Saliendo...")
             break
+
+        else:
+            print("Opción incorrecta.")
 
 
 print("[STARTING] Dron inicializándose...")
