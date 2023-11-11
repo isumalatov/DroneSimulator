@@ -147,7 +147,6 @@ def darse_de_baja():
 
 
 def editar_perfil():
-    thread_read_figuras = threading.Thread(target=read_figuras)
     while True:
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
