@@ -105,46 +105,43 @@ def darse_de_alta():
 
 
 def darse_de_baja():
-    while True:
-        try:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(ADDRR)
-            print(f"Establecida conexión en [{ADDRR}]")
-
-            if dron.token is None:
-                print("El dron no está dado de alta.")
-            else:
+    if dron.token is None:
+        print("El dron no está dado de alta.")
+    else:
+        while True:
+            try:
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect(ADDRR)
+                print(f"Establecida conexión en [{ADDRR}]")
                 dron_id = input("ID del dron a dar de baja: ")
                 print("Envio al Registry: baja", dron_id)
                 send(f"baja {dron_id}", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
                 dron.token = None
-
-            print("Envio al Registry: FIN")
-            send(FIN, client)
-            client.close()
-            break
-        except ConnectionRefusedError:
-            print("Registry is not available. Please try again later.")
-            sleep(5)
-        except ConnectionResetError:
-            print(
-                "The connection was closed by the remote host. Please try again later."
-            )
-            sleep(5)
+                print("Envio al Registry: FIN")
+                send(FIN, client)
+                client.close()
+                break
+            except ConnectionRefusedError:
+                print("Registry is not available. Please try again later.")
+                sleep(5)
+            except ConnectionResetError:
+                print(
+                    "The connection was closed by the remote host. Please try again later."
+                )
+                sleep(5)
 
 
 def editar_perfil():
-    while True:
-        try:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(ADDRR)
-            print(f"Establecida conexión en [{ADDRR}]")
-
-            if dron.token is None:
-                print("El dron no está dado de alta.")
-            else:
+    if dron.token is None:
+        print("El dron no está dado de alta.")
+    else:
+        while True:
+            try:
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect(ADDRR)
+                print(f"Establecida conexión en [{ADDRR}]")
                 dron_id = input("ID del dron a editar: ")
                 new_alias = input("Nuevo alias: ")
                 print("Envio al Registry: editar", dron_id, new_alias)
@@ -152,79 +149,74 @@ def editar_perfil():
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
                 dron.alias = new_alias
-
-            print("Envio al Registry: FIN")
-            send(FIN, client)
-            client.close()
-            break
-        except ConnectionRefusedError:
-            print("Registry is not available. Please try again later.")
-            sleep(5)
-        except ConnectionResetError:
-            print(
-                "The connection was closed by the remote host. Please try again later."
-            )
-            sleep(5)
+                print("Envio al Registry: FIN")
+                send(FIN, client)
+                client.close()
+                break
+            except ConnectionRefusedError:
+                print("Registry is not available. Please try again later.")
+                sleep(5)
+            except ConnectionResetError:
+                print(
+                    "The connection was closed by the remote host. Please try again later."
+                )
+                sleep(5)
 
 
 def recuperar_token():
-    while True:
-        try:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(ADDRR)
-            print(f"Establecida conexión en [{ADDRR}]")
-
-            if dron.token is not None:
-                print("El dron ya tiene un token.")
-            else:
+    if dron.token is not None:
+        print("El dron ya tiene un token.")
+    else:
+        while True:
+            try:
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect(ADDRR)
+                print(f"Establecida conexión en [{ADDRR}]")
                 dron_id = input("ID del dron a recuperar: ")
                 print("Envio al Registry: recuperar", dron_id)
                 send(f"recuperar {dron_id}", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
                 dron.token = response
-
-            print("Envio al Registry: FIN")
-            send(FIN, client)
-            client.close()
-            break
-        except ConnectionRefusedError:
-            print("Registry is not available. Please try again later.")
-            sleep(5)
-        except ConnectionResetError:
-            print(
-                "The connection was closed by the remote host. Please try again later."
-            )
-            sleep(5)
+                print("Envio al Registry: FIN")
+                send(FIN, client)
+                client.close()
+                break
+            except ConnectionRefusedError:
+                print("Registry is not available. Please try again later.")
+                sleep(5)
+            except ConnectionResetError:
+                print(
+                    "The connection was closed by the remote host. Please try again later."
+                )
+                sleep(5)
 
 
 def autentificarse():
-    while True:
-        try:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(ADDRE)
-            print(f"Establecida conexión en [{ADDRE}]")
-
-            if dron.token is None:
-                print("El dron no tiene un token.")
-            else:
+    if dron.token is None:
+        print("El dron no tiene un token.")
+    else:
+        while True:
+            try:
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect(ADDRE)
+                print(f"Establecida conexión en [{ADDRE}]")
                 print("Envio al Engine: autentificar", dron.token)
                 send(f"autentificar {dron.token}", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Engine:", response)
-
-            print("Envio al Engine: FIN")
-            send(FIN, client)
-            client.close()
-            break
-        except ConnectionRefusedError:
-            print("Engine is not available. Please try again later.")
-            sleep(5)
-        except ConnectionResetError:
-            print(
-                "The connection was closed by the remote host. Please try again later."
-            )
-            sleep(5)
+                print("Envio al Engine: FIN")
+                send(FIN, client)
+                client.close()
+                break
+            except ConnectionRefusedError:
+                print("Engine is not available. Please try again later.")
+                sleep(5)
+            except ConnectionResetError:
+                print(
+                    "The connection was closed by the remote host. Please try again later."
+                )
+                sleep(5)
 
 
 def start():
