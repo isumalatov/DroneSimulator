@@ -12,6 +12,9 @@ from kafka.errors import KafkaError
 class Engine:
     def __init__(self):
         self.figuras = []
+        self.espacio_aereo = [
+            [0] * 20 for _ in range(20)
+        ]  # Matriz 20x20 para simular el espacio aéreo
 
 
 engine = Engine()
@@ -97,7 +100,7 @@ def send_figuras():
                             break
                         except KafkaError as e:
                             handle_error(e)
-            sleep(10)  # wait for 5 seconds before checking for new figuras
+            sleep(10)  # wait for 10 seconds before checking for new figuras
             if len(sent_figuras) == len(engine.figuras):
                 print("Todas las figuras han sido enviadas")
                 break

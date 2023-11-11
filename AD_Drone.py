@@ -13,8 +13,6 @@ from kafka.errors import KafkaError
 class Drone:
     def __init__(self):
         self.id = None
-        self.dado_de_alta = False
-        self.autentificado = False
         self.alias = None
         self.token = None
         self.estado = False
@@ -79,34 +77,31 @@ def read_figuras():
 
 
 def darse_de_alta():
-    while True:
-        try:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(ADDRR)
-            print(f"Establecida conexión en [{ADDRR}]")
-
-            if dron.token is not None:
-                print("El dron ya está dado de alta.")
-            else:
+    if dron.token is not None:
+        print("El dron ya está dado de alta.")
+    else:
+        while True:
+            try:
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect(ADDRR)
+                print(f"Establecida conexión en [{ADDRR}]")
                 print("Envio al Registry: alta")
                 send("alta", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
                 dron.token = response
-
-            print("Envio al Registry: FIN")
-            send(FIN, client)
-            client.close()
-            dron.dado_de_alta = True
-            break
-        except ConnectionRefusedError:
-            print("Registry is not available. Please try again later.")
-            sleep(5)
-        except ConnectionResetError:
-            print(
-                "The connection was closed by the remote host. Please try again later."
-            )
-            sleep(5)
+                print("Envio al Registry: FIN")
+                send(FIN, client)
+                client.close()
+                break
+            except ConnectionRefusedError:
+                print("Registry is not available. Please try again later.")
+                sleep(5)
+            except ConnectionResetError:
+                print(
+                    "The connection was closed by the remote host. Please try again later."
+                )
+                sleep(5)
 
 
 def darse_de_baja():
@@ -129,7 +124,6 @@ def darse_de_baja():
             print("Envio al Registry: FIN")
             send(FIN, client)
             client.close()
-            dron.dado_de_alta = False
             break
         except ConnectionRefusedError:
             print("Registry is not available. Please try again later.")
@@ -193,7 +187,6 @@ def recuperar_token():
             print("Envio al Registry: FIN")
             send(FIN, client)
             client.close()
-            dron.dado_de_alta = True
             break
         except ConnectionRefusedError:
             print("Registry is not available. Please try again later.")
@@ -209,24 +202,23 @@ def autentificarse():
     while True:
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect(ADDRR)
-            print(f"Establecida conexión en [{ADDRR}]")
+            client.connect(ADDRE)
+            print(f"Establecida conexión en [{ADDRE}]")
 
             if dron.token is None:
                 print("El dron no tiene un token.")
             else:
-                print("Envio al Registry: autentificar", dron.token)
+                print("Envio al Engine: autentificar", dron.token)
                 send(f"autentificar {dron.token}", client)
                 response = client.recv(2048).decode(FORMAT)
-                print("Recibo del Registry:", response)
-                dron.autentificado = True
+                print("Recibo del Engine:", response)
 
-            print("Envio al Registry: FIN")
+            print("Envio al Engine: FIN")
             send(FIN, client)
             client.close()
             break
         except ConnectionRefusedError:
-            print("Registry is not available. Please try again later.")
+            print("Engine is not available. Please try again later.")
             sleep(5)
         except ConnectionResetError:
             print(
