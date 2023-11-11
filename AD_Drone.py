@@ -12,7 +12,7 @@ from kafka.errors import KafkaError
 
 class Drone:
     def __init__(self):
-        self.id = str(uuid.uuid4())  # Genera un UUID único
+        self.id = None
         self.dado_de_alta = False
         self.autentificado = False
         self.alias = None
@@ -38,14 +38,6 @@ FORMAT = "utf-8"
 FIN = "FIN"
 
 
-consumer_destinos = KafkaConsumer(
-    "destinos",
-    bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
-    value_deserializer=lambda x: json.loads(x.decode("utf-8")),
-    group_id='drone-' + dron.id,
-)
-
-
 def send(msg, client):
     message = msg.encode(FORMAT)
     msg_length = len(message)
@@ -56,7 +48,6 @@ def send(msg, client):
 
 
 def process_message(message):
-    # Procesar el mensaje
     print(message)
 
 
@@ -66,6 +57,12 @@ def handle_error(e):
 
 
 def read_figuras():
+    consumer_destinos = KafkaConsumer(
+        "destinos",
+        bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
+        value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+        group_id="drone-" + dron.id,
+    )
     try:
         while True:
             try:
@@ -91,14 +88,10 @@ def darse_de_alta():
             if dron.token is not None:
                 print("El dron ya está dado de alta.")
             else:
-                alias = input("Alias del dron: ")
-                dron.alias = alias
-                print(f"ID único del dron: {dron.id}")
-                print("Envio al Registry: alta", dron.id, dron.alias)
-                send(f"alta {dron.id} {dron.alias}", client)
+                print("Envio al Registry: alta")
+                send("alta", client)
                 response = client.recv(2048).decode(FORMAT)
                 print("Recibo del Registry:", response)
-                dron.token = response
 
             print("Envio al Registry: FIN")
             send(FIN, client)
@@ -179,15 +172,45 @@ def editar_perfil():
             sleep(5)
 
 
+def recuperar_token():
+    while True:
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDRR)
+            print(f"Establecida conexión en [{ADDRR}]")
+
+            if dron.token is not None:
+                print("El dron ya tiene un token.")
+            else:
+                dron_id = input("ID del dron a recuperar: ")
+                print("Envio al Registry: recuperar", dron_id)
+                send(f"recuperar {dron_id}", client)
+                response = client.recv(2048).decode(FORMAT)
+                print("Recibo del Registry:", response)
+                dron.token = response
+
+            print("Envio al Registry: FIN")
+            send(FIN, client)
+            client.close()
+            break
+        except ConnectionRefusedError:
+            print("Registry is not available. Please try again later.")
+            sleep(5)
+        except ConnectionResetError:
+            print(
+                "The connection was closed by the remote host. Please try again later."
+            )
+            sleep(5)
+
+
 def start():
-    theard_read_figuras = threading.Thread(target=read_figuras)
-    theard_read_figuras.start()
     while True:
         print("¿Qué quieres hacer?")
         print("1. Darse de alta")
         print("2. Darse de baja")
         print("3. Editar perfil")
-        print("4. Salir")
+        print("4. Recuperar token")
+        print("5. Salir")
         opcion = input("Opción: ")
 
         if opcion == "1":
@@ -200,6 +223,9 @@ def start():
             editar_perfil()
 
         elif opcion == "4":
+            recuperar_token()
+
+        elif opcion == "5":
             print("Saliendo...")
             break
 

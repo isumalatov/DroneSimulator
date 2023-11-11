@@ -97,8 +97,10 @@ def send_figuras():
                             break
                         except KafkaError as e:
                             handle_error(e)
-                sleep(5)  # wait for 5 seconds before sending the next figura
-            sleep(5)  # wait for 5 seconds before checking for new figuras
+            sleep(10)  # wait for 5 seconds before checking for new figuras
+            if len(sent_figuras) == len(engine.figuras):
+                print("Todas las figuras han sido enviadas")
+                break
     finally:
         producer.close()
 
