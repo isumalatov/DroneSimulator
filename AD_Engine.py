@@ -4,10 +4,9 @@ import threading
 import sqlite3
 from kafka import KafkaProducer
 from kafka import KafkaConsumer
-from kafka.errors import KafkaError, NoBrokersAvailable, FailedPayloadsError
 import json
 from time import sleep
-import pygame
+from kafka.errors import KafkaError
 
 
 class Engine:
@@ -77,32 +76,31 @@ def read_json():
 
 def send_figura(figura):
     producer.send("destinos", value=figura)
+    producer.flush()
+
+
+def handle_error(e):
+    print(f"Error: {e}")
+    sleep(5)
 
 
 def send_figuras():
     sent_figuras = set()  # keep track of the figuras that have been sent
-    while True:
-        for figura in engine.figuras:
-            if figura not in sent_figuras:
-                while True:
-                    try:
-                        send_figura(figura)
-                        sent_figuras.add(figura)  # mark the figura as sent
-                        break
-                    except NoBrokersAvailable:
-                        print(
-                            "Error: No Kafka brokers available. Retrying in 5 seconds..."
-                        )
-                        sleep(5)
-                    except FailedPayloadsError:
-                        print(
-                            "Error: Failed to send payloads. Retrying in 5 seconds..."
-                        )
-                        sleep(5)
-                    except KafkaError as e:
-                        print(f"Error sending figure: {e}")
-                        sleep(5)
-        sleep(5)  # wait for 5 seconds before checking for new figuras
+    try:
+        while True:
+            for figura in engine.figuras:
+                if figura not in sent_figuras:
+                    while True:
+                        try:
+                            send_figura(figura)
+                            sent_figuras.add(figura)  # mark the figura as sent
+                            break
+                        except KafkaError as e:
+                            handle_error(e)
+                sleep(5)  # wait for 5 seconds before sending the next figura
+            sleep(5)  # wait for 5 seconds before checking for new figuras
+    finally:
+        producer.close()
 
 
 def start():

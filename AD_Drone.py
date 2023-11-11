@@ -7,6 +7,7 @@ import json
 import threading
 from time import sleep
 import os
+from kafka.errors import KafkaError
 
 
 class Drone:
@@ -37,6 +38,13 @@ FORMAT = "utf-8"
 FIN = "FIN"
 
 
+consumer_destinos = KafkaConsumer(
+    "destinos",
+    bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
+    value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+)
+
+
 def send(msg, client):
     message = msg.encode(FORMAT)
     msg_length = len(message)
@@ -44,6 +52,32 @@ def send(msg, client):
     send_length += b" " * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
+
+
+def process_message(message):
+    # Procesar el mensaje
+    print(message)
+
+
+def handle_error(e):
+    print(f"Error: {e}")
+    sleep(5)
+
+
+def read_figuras():
+    try:
+        while True:
+            try:
+                # Leer mensaje del topic
+                for message in consumer_destinos:
+                    # Procesar el mensaje
+                    process_message(message.value)
+                    # Confirmar el mensaje
+                    consumer_destinos.commit()
+            except KafkaError as e:
+                handle_error(e)
+    finally:
+        consumer_destinos.close()
 
 
 def darse_de_alta():
@@ -113,6 +147,7 @@ def darse_de_baja():
 
 
 def editar_perfil():
+    thread_read_figuras = threading.Thread(target=read_figuras)
     while True:
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
