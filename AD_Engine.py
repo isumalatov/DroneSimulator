@@ -13,10 +13,12 @@ class Engine:
     def __init__(self):
         self.figuras = []
         self.espacio_aereo = [
-            [0] * 20 for _ in range(20)
+            [" "] * 20 for _ in range(20)
         ]  # Matriz 20x20 para simular el espacio aéreo
         self.started = False
         self.drones = []
+        self.drones_en_posicion = []
+        self.moviendose = False
 
 
 engine = Engine()
@@ -134,6 +136,26 @@ def handle_client(conn, addr):
 
                         else:
                             conn.send("Autentificacion erronea".encode(FORMAT))
+                elif (
+                    action == "autentificar"
+                    and engine.started == True
+                    and len(engine.drones) <= MAX_CONEXIONES
+                    and dron_id in engine.drones
+                ):
+                    cursor.execute(
+                        "SELECT token FROM drones WHERE dron_id = ?", (dron_id,)
+                    )
+                    token = cursor.fetchone()
+                    if token:
+                        if token[0] == dron_token:
+                            conn.send("Autentificación correcta".encode(FORMAT))
+                            engine.drones.append(dron_id)
+
+                        else:
+                            conn.send("Autentificación erronea".encode(FORMAT))
+
+                    else:
+                        conn.send("Autentificacion erronea".encode(FORMAT))
 
                 elif action == "autentificar" and engine.started == True:
                     conn.send(
@@ -180,9 +202,12 @@ def send_figuras():
                 if figura not in sent_figuras:
                     while True:
                         try:
-                            send_figura(figura)
-                            sent_figuras.append(figura)
-                            break
+                            if engine.moviendose == False:
+                                send_figura(figura)
+                                engine.moviendose = True
+                                sent_figuras.append(figura)
+                                engine.drones_en_posicion = []
+                                break
                         except KafkaError as e:
                             handle_error(e)
             sleep(10)  # wait for 10 seconds before checking for new figuras
@@ -191,6 +216,51 @@ def send_figuras():
                 break
     finally:
         producer.close()
+
+
+def process_position_message(posicion):
+    if posicion:
+        dron_id = posicion["ID"]
+        dron_posicion = posicion["POS"]
+        dron_estado = posicion["STATE"]
+        for i in range(20):
+            for j in range(20):
+                if engine.espacio_aereo[i][j] == dron_id:
+                    engine.espacio_aereo[i][j] = " "
+        engine.espacio_aereo[dron_posicion[0]][dron_posicion[1]] = dron_id
+        if dron_estado == "POSITIONED":
+            engine.drones_en_posicion.append(dron_id)
+        if len(engine.drones_en_posicion) == len(engine.drones):
+            engine.moviendose = False
+        print_espacio_aereo()
+
+
+def print_espacio_aereo():
+    for i in range(20):
+        print(engine.espacio_aereo[i])
+
+
+def read_positions():
+    consumer_posiciones = KafkaConsumer(
+        "posiciones",
+        bootstrap_servers=[f"{IP_BROKER}:{PORT_BROKER}"],
+        value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+        group_id="my-group",
+    )
+    try:
+        while True:
+            try:
+                # Leer mensaje del topic
+                for message in consumer_posiciones:
+                    # Procesar el mensaje
+                    posicion = message.value
+                    process_position_message(posicion)
+                    # Confirmar el mensaje
+                    consumer_posiciones.commit()
+            except KafkaError as e:
+                handle_error(e)
+    finally:
+        consumer_posiciones.close()
 
 
 def start():
