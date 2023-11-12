@@ -221,23 +221,25 @@ def send_figuras():
 def process_position_message(posicion):
     if posicion:
         dron_id = posicion["ID"]
-        dron_posicion = posicion["POS"]
+        dron_posicion_x, dron_posicion_y = map(int, posicion["POS"].split(","))
         dron_estado = posicion["STATE"]
         for i in range(20):
             for j in range(20):
                 if engine.espacio_aereo[i][j] == dron_id:
                     engine.espacio_aereo[i][j] = " "
-        engine.espacio_aereo[dron_posicion[0]][dron_posicion[1]] = dron_id
+        engine.espacio_aereo[dron_posicion_x][dron_posicion_y] = dron_id
+        print_espacio_aereo()
         if dron_estado == "POSITIONED":
             engine.drones_en_posicion.append(dron_id)
         if len(engine.drones_en_posicion) == len(engine.drones):
+            sleep(5)
             engine.moviendose = False
-        print_espacio_aereo()
 
 
 def print_espacio_aereo():
     for i in range(20):
         print(engine.espacio_aereo[i])
+    print("\n")
 
 
 def read_positions():
@@ -274,6 +276,8 @@ def start():
             break
     thread_read_json = threading.Thread(target=read_json)
     thread_read_json.start()
+    thread_read_positions = threading.Thread(target=read_positions)
+    thread_read_positions.start()
     thread_send_figuras = threading.Thread(target=send_figuras)
     thread_send_figuras.start()
 

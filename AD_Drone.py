@@ -84,19 +84,34 @@ def move_to_position():
                 dron.posicion[1] += 1
             elif dron.posicion_final[1] < dron.posicion[1]:
                 dron.posicion[1] -= 1
-            posicion = {"ID": dron.id, "POS": str(dron.posicion[0]) + "," + str(dron.posicion[1]),"STATE": "MOVING"}
+            posicion = {
+                "ID": dron.id,
+                "POS": f"{dron.posicion[0]},{dron.posicion[1]}",
+                "STATE": "MOVING",
+            }
+            print(posicion)
             while True:
                 try:
                     send_figura(posicion)
                     break
                 except KafkaError as e:
                     handle_error(e)
-            sleep(0.2)
+            sleep(1)
         else:
-            posicion = {"ID": dron.id, "POS": str(dron.posicion[0]) + "," + str(dron.posicion[1]),"STATE": "POSITIONED"}
+            posicion = {
+                "ID": dron.id,
+                "POS": f"{dron.posicion[0]},{dron.posicion[1]}",
+                "STATE": "POSITIONED",
+            }
+            print(posicion)
+            while True:
+                try:
+                    send_figura(posicion)
+                    break
+                except KafkaError as e:
+                    handle_error(e)
             break
     dron.moviendome = False
-        
 
 
 def read_figuras():
