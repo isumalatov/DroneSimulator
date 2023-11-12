@@ -43,6 +43,11 @@ FORMAT = "utf-8"
 FIN = "FIN"
 
 
+RED = "\033[31m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
+
 # Crear una conexión y un cursor específicos para cada hilo
 local = threading.local()
 
@@ -245,8 +250,8 @@ def process_position_message(posicion):
         if dron_estado == "POSITIONED":
             engine.drones_en_posicion.append(dron_id)
         if len(engine.drones_en_posicion) == len(engine.drones):
-            engine.drones_en_posicion = []
             sleep(5)
+            engine.drones_en_posicion = []
             engine.moviendose = False
 
 
@@ -256,7 +261,14 @@ def print_espacio_aereo():
             os.system("cls")
         with espacio_aereo_lock:  # Adquirir el lock antes de leer engine.espacio_aereo
             for row in engine.espacio_aereo:
-                print("[" + " ".join(row) + "]")
+                row_str = "["
+                for cell in row:
+                    if cell in engine.drones_en_posicion:
+                        row_str += GREEN + cell + RESET + " "
+                    else:
+                        row_str += RED + cell + RESET + " "
+                row_str += "]"
+                print(row_str)
         print("\n")
         sleep(0.2)
 

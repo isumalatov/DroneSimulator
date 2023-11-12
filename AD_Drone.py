@@ -19,6 +19,7 @@ class Drone:
         self.autentificado = False
         self.posicion = [0, 0]
         self.posicion_final = [0, 0]
+        self.positioned = False
 
 
 dron = Drone()
@@ -78,6 +79,7 @@ def process_figura_message(figura):
 def move_to_position():
     while True:
         if dron.posicion_final != dron.posicion:
+            dron.positioned = False
             if dron.posicion_final[0] > dron.posicion[0]:
                 dron.posicion[0] += 1
             elif dron.posicion_final[0] < dron.posicion[0]:
@@ -99,6 +101,7 @@ def move_to_position():
                 except KafkaError as e:
                     handle_error(e)
         else:
+            dron.positioned = True
             posicion = {
                 "ID": dron.id,
                 "POS": f"{dron.posicion[0]},{dron.posicion[1]}",
