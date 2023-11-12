@@ -17,6 +17,8 @@ class Drone:
         self.token = None
         self.dado_de_alta = False
         self.autentificado = False
+        self.posicion = [0, 0]
+        self.posicion_final = [0, 0]
 
 
 dron = Drone()
@@ -44,8 +46,13 @@ def send(msg, client):
     client.send(message)
 
 
-def process_message(message):
-    print(message)
+def process_position_message(message):
+    if message:
+        for drone in message:
+            if dron.id == drone["ID"]:
+                pos_X,pos_y = drone["POS"].split(",")
+                dron.posicion_final = [int(pos_X),int(pos_y)]
+                print("Posición final:", dron.posicion_final)
 
 
 def handle_error(e):
@@ -66,7 +73,7 @@ def read_figuras():
                 # Leer mensaje del topic
                 for message in consumer_destinos:
                     # Procesar el mensaje
-                    process_message(message.value)
+                    process_position_message(message.value)
                     # Confirmar el mensaje
                     consumer_destinos.commit()
             except KafkaError as e:
@@ -200,6 +207,8 @@ def recuperar_token():
 def autentificarse():
     if dron.token is None:
         print("El dron no tiene un token.")
+    elif dron.autentificado:
+        print("El dron ya está autentificado.")
     else:
         while True:
             try:
