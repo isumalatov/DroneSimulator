@@ -113,7 +113,7 @@ def move_to_position():
             break
 
 
-def read_figuras():
+def read_destinos():
     consumer_destinos = KafkaConsumer(
         "destinos",
         bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
@@ -132,6 +132,36 @@ def read_figuras():
                 handle_error(e)
     finally:
         consumer_destinos.close()
+
+
+def print_espacio_aereo(espacio):
+    if os.name == "nt":
+        os.system("cls")
+        for row in espacio:
+            print("[" + " ".join(row) + "]")
+    print("\n")
+
+
+def read_espacios():
+    consumer_espacios = KafkaConsumer(
+        "espacios",
+        bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
+        value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+        auto_offset_reset="latest",
+    )
+    try:
+        while True:
+            try:
+                # Leer mensaje del topic
+                for message in consumer_espacios:
+                    # Procesar el mensaje
+                    espacio = message.value
+                    print_espacio_aereo(espacio)
+
+            except KafkaError as e:
+                handle_error(e)
+    finally:
+        consumer_espacios.close()
 
 
 def darse_de_alta():
@@ -284,7 +314,11 @@ def autentificarse():
 
 
 def start():
-    thread_read_figuras = threading.Thread(target=read_figuras)
+    mapa = input("¿Quieres mostrar el mapa en esta terminal? ('si', 'no'): ")
+    if mapa == "si":
+        thread_read_espacios = threading.Thread(target=read_espacios)
+        thread_read_espacios.start()
+    thread_read_figuras = threading.Thread(target=read_destinos)
     while True:
         print("¿Qué quieres hacer?")
         print("1. Darse de alta")

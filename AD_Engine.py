@@ -199,23 +199,29 @@ def handle_error(e):
 
 def send_figuras():
     sent_figuras = []  # keep track of the figuras that have been sent
+    base_msj = {"Nombre": "BASE"}
     try:
         while True:
             for figura in engine.figuras:
                 if figura not in sent_figuras:
                     while True:
                         try:
-                            if engine.moviendose == False:
-                                send_figura(figura)
+                            if engine.temperatura < 0.0:
+                                send_figura(base_msj)
                                 engine.moviendose = True
                                 sent_figuras.append(figura)
                                 break
+                            else:                         
+                                if engine.moviendose == False:
+                                    send_figura(figura)
+                                    engine.moviendose = True
+                                    sent_figuras.append(figura)
+                                    break
                         except KafkaError as e:
                             handle_error(e)
             if engine.moviendose == False:
                 sleep(10)
                 if len(sent_figuras) == len(engine.figuras):
-                    base_msj = {"Nombre": "BASE"}
                     send_figura(base_msj)
                     engine.moviendose = True
     finally:
@@ -235,6 +241,7 @@ def process_position_message(posicion):
                     if engine.espacio_aereo[i][j] == dron_id:
                         engine.espacio_aereo[i][j] = " "
             engine.espacio_aereo[dron_posicion_x][dron_posicion_y] = dron_id
+            producer.send("espacios", value=engine.espacio_aereo)
         if dron_estado == "POSITIONED":
             engine.drones_en_posicion.append(dron_id)
         if len(engine.drones_en_posicion) == len(engine.drones):
@@ -280,11 +287,10 @@ def handle_weather():
         try:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client.connect(ADDRW)
-            print(f"Establecida conexión en [{ADDRW}]")
             while True:
                 send("get", client)
                 response = client.recv(2048).decode(FORMAT)
-                engine.temperature = float(response)
+                engine.temperatura = float(response)
                 sleep(5)
         except ConnectionRefusedError as e:
             handle_error(e)
@@ -300,8 +306,10 @@ def start():
     thread_handle_weather.start()
     while True:
         start_input = input("Escriba 'start' para iniciar el espectaculo: ")
-        if engine.temperatura<0:
-            print("No se puede iniciar el espectaculo con temperaturas bajo cero,pruebe mas tarde")
+        if engine.temperatura < 0.0:
+            print(
+                "No se puede iniciar el espectaculo con temperaturas bajo cero,pruebe mas tarde"
+            )
         else:
             if start_input == "start":
                 engine.started = True
