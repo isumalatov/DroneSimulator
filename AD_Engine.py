@@ -155,7 +155,7 @@ def handle_conexions():
     server.bind(ADDR)
     server.listen()
     while True:
-        conn = server.accept()
+        conn, addr = server.accept()
         thread = threading.Thread(target=handle_client, args=(conn,))
         thread.start()
 
