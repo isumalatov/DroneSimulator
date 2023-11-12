@@ -262,7 +262,8 @@ def start():
         elif opcion == "5":
             autentificarse()
             if dron.autentificado:
-                thread_read_figuras.start()
+                if not thread_read_figuras.is_alive():
+                    thread_read_figuras.start()
 
         elif opcion == "6":
             print("Saliendo...")
