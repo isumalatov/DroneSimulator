@@ -95,7 +95,7 @@ def read_json():
         sleep(5)  # wait for 5 seconds before checking the file again
 
 
-def handle_client(conn,addr):
+def handle_client(conn, addr):
     print(f"[NUEVA CONEXION] {addr} connected.")
     while True:
         msg_length = conn.recv(HEADER).decode(FORMAT)
@@ -157,7 +157,7 @@ def handle_conexions():
     server.listen()
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn,addr))
+        thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
 
 
