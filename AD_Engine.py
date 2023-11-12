@@ -97,62 +97,59 @@ def read_json():
 
 def handle_client(conn, addr):
     print(f"[NUEVA CONEXION] {addr} connected.")
-    try:
-        while True:
-            msg_length = conn.recv(HEADER).decode(FORMAT)
-            if msg_length:
-                msg_length = int(msg_length)
-                msg = conn.recv(msg_length).decode(FORMAT)
-                if msg == FIN:
-                    break
-                else:
-                    input = msg.split(" ")
-                    action = input[0]
-                    dron_id = input[1]
-                    dron_token = input[2]
-                    cursor = get_cursor()
 
-                    if (
-                        action == "autentificarse"
-                        and engine.started == False
-                        and len(engine.drones) <= MAX_CONEXIONES
-                    ):
-                        if dron_id in engine.drones:
-                            conn.send("Ya estás autentificado".encode(FORMAT))
-                        else:
-                            cursor.execute(
-                                "SELECT token FROM drones WHERE dron_id = ?", (dron_id,)
-                            )
-                            token = cursor.fetchone()
-                            if token:
-                                if token[0] == dron_token:
-                                    conn.send("Autentificación correcta".encode(FORMAT))
-                                    engine.drones.append(dron_id)
+    while True:
+        msg_length = conn.recv(HEADER).decode(FORMAT)
+        if msg_length:
+            msg_length = int(msg_length)
+            msg = conn.recv(msg_length).decode(FORMAT)
+            if msg == FIN:
+                break
+            else:
+                input = msg.split(" ")
+                action = input[0]
+                dron_id = input[1]
+                dron_token = input[2]
+                cursor = get_cursor()
 
-                                else:
-                                    conn.send("Autentificación erronea".encode(FORMAT))
+                if (
+                    action == "autentificar"
+                    and engine.started == False
+                    and len(engine.drones) <= MAX_CONEXIONES
+                ):
+                    if dron_id in engine.drones:
+                        conn.send("Ya estás autentificado".encode(FORMAT))
+                    else:
+                        cursor.execute(
+                            "SELECT token FROM drones WHERE dron_id = ?", (dron_id,)
+                        )
+                        token = cursor.fetchone()
+                        if token:
+                            if token[0] == dron_token:
+                                conn.send("Autentificación correcta".encode(FORMAT))
+                                engine.drones.append(dron_id)
 
                             else:
-                                conn.send("Autentificacion erronea".encode(FORMAT))
+                                conn.send("Autentificación erronea".encode(FORMAT))
 
-                    elif action == "autentificarse" and engine.started == True:
-                        conn.send(
-                            "OOppsss... COMENZÓ EL ESPECTÁCULO. Tendrás que esperar a que termine".encode(
-                                FORMAT
-                            )
-                        )
+                        else:
+                            conn.send("Autentificacion erronea".encode(FORMAT))
 
-                    elif action == "autentificarse" and len(engine.drones) > MAX_CONEXIONES:
-                        print("10---------------------------------------------------")
-                        conn.send(
-                            "OOppsss... DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(
-                                FORMAT
-                            )
+                elif action == "autentificar" and engine.started == True:
+                    conn.send(
+                        "OOppsss... COMENZÓ EL ESPECTÁCULO. Tendrás que esperar a que termine".encode(
+                            FORMAT
                         )
-    except ConnectionResetError:
-        print(f"La conexión con el dron {dron_id} fue terminado abruptamente.")
-    finally:
-        conn.close()
+                    )
+
+                elif action == "autentificar" and len(engine.drones) > MAX_CONEXIONES:
+                    conn.send(
+                        "OOppsss... DEMASIADAS CONEXIONES. Tendrás que esperar a que alguien se vaya".encode(
+                            FORMAT
+                        )
+                    )
+
+    conn.close()
 
 
 def handle_conexions():
