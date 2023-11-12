@@ -127,8 +127,6 @@ def read_figuras():
                 for message in consumer_destinos:
                     # Procesar el mensaje
                     figura = message.value
-                    print("Recibo del Engine:", figura)
-                    print("\n")
                     process_figura_message(figura)
             except KafkaError as e:
                 handle_error(e)
@@ -188,14 +186,10 @@ def darse_de_baja():
                 client.close()
                 dron.dado_de_alta = False
                 break
-            except ConnectionRefusedError:
-                print("Registry is not available. Please try again later.")
-                sleep(5)
-            except ConnectionResetError:
-                print(
-                    "The connection was closed by the remote host. Please try again later."
-                )
-                sleep(5)
+            except ConnectionRefusedError as e:
+                handle_error(e)
+            except ConnectionResetError as e:
+                handle_error(e)
 
 
 def editar_perfil():

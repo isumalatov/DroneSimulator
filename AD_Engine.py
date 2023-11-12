@@ -7,6 +7,7 @@ from kafka import KafkaConsumer
 import json
 from time import sleep
 from kafka.errors import KafkaError
+import os
 
 
 class Engine:
@@ -19,9 +20,13 @@ class Engine:
         self.drones = []
         self.drones_en_posicion = []
         self.moviendose = False
+        self.temperatura = None
 
 
 engine = Engine()
+
+
+espacio_aereo_lock = threading.Lock()
 
 
 PORT = int(sys.argv[1])
@@ -98,8 +103,6 @@ def read_json():
 
 
 def handle_client(conn, addr):
-    print(f"[NUEVA CONEXION] {addr} connected.")
-
     while True:
         msg_length = conn.recv(HEADER).decode(FORMAT)
         if msg_length:
@@ -209,11 +212,12 @@ def send_figuras():
                                 break
                         except KafkaError as e:
                             handle_error(e)
-            sleep(10)  # wait for 10 seconds before checking for new figuras
-            if len(sent_figuras) == len(engine.figuras):
-                print("Todas las figuras han sido enviadas, vuelta a la base")
-                break
-
+            if engine.moviendose == False:
+                sleep(10)
+                if len(sent_figuras) == len(engine.figuras):
+                    base_msj = {"Nombre": "BASE"}
+                    send_figura(base_msj)
+                    engine.moviendose = True
     finally:
         producer.close()
 
@@ -223,12 +227,14 @@ def process_position_message(posicion):
         dron_id = posicion["ID"]
         dron_posicion_x, dron_posicion_y = map(int, posicion["POS"].split(","))
         dron_estado = posicion["STATE"]
-        for i in range(20):
-            for j in range(20):
-                if engine.espacio_aereo[i][j] == dron_id:
-                    engine.espacio_aereo[i][j] = " "
-        engine.espacio_aereo[dron_posicion_x][dron_posicion_y] = dron_id
-        print_espacio_aereo()
+        with (
+            espacio_aereo_lock
+        ):  # Adquirir el lock antes de modificar engine.espacio_aereo
+            for i in range(20):
+                for j in range(20):
+                    if engine.espacio_aereo[i][j] == dron_id:
+                        engine.espacio_aereo[i][j] = " "
+            engine.espacio_aereo[dron_posicion_x][dron_posicion_y] = dron_id
         if dron_estado == "POSITIONED":
             engine.drones_en_posicion.append(dron_id)
         if len(engine.drones_en_posicion) == len(engine.drones):
@@ -238,9 +244,14 @@ def process_position_message(posicion):
 
 
 def print_espacio_aereo():
-    for row in engine.espacio_aereo:
-        print("[" + " ".join(row) + "]")
-    print("\n")
+    while True:
+        if os.name == "nt":
+            os.system("cls")
+        with espacio_aereo_lock:  # Adquirir el lock antes de leer engine.espacio_aereo
+            for row in engine.espacio_aereo:
+                print("[" + " ".join(row) + "]")
+        print("\n")
+        sleep(0.2)
 
 
 def read_positions():
@@ -257,7 +268,6 @@ def read_positions():
                 for message in consumer_posiciones:
                     # Procesar el mensaje
                     posicion = message.value
-                    print(f"Mensaje recibido: {posicion}")
                     process_position_message(posicion)
             except KafkaError as e:
                 handle_error(e)
@@ -265,21 +275,45 @@ def read_positions():
         consumer_posiciones.close()
 
 
+def handle_weather():
+    while True:
+        try:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect(ADDRW)
+            print(f"Establecida conexión en [{ADDRW}]")
+            while True:
+                send("get", client)
+                response = client.recv(2048).decode(FORMAT)
+                engine.temperature = float(response)
+                sleep(5)
+        except ConnectionRefusedError as e:
+            handle_error(e)
+        except ConnectionResetError as e:
+            handle_error(e)
+
+
 def start():
     print(f"[LISTENING] Engine a la escucha en {SERVER}:{PORT}")
     thread_handle_conexions = threading.Thread(target=handle_conexions)
     thread_handle_conexions.start()
+    thread_handle_weather = threading.Thread(target=handle_weather)
+    thread_handle_weather.start()
     while True:
         start_input = input("Escriba 'start' para iniciar el espectaculo: ")
-        if start_input == "start":
-            engine.started = True
-            break
+        if engine.temperatura<0:
+            print("No se puede iniciar el espectaculo con temperaturas bajo cero,pruebe mas tarde")
+        else:
+            if start_input == "start":
+                engine.started = True
+                break
     thread_read_json = threading.Thread(target=read_json)
     thread_read_json.start()
     thread_read_positions = threading.Thread(target=read_positions)
     thread_read_positions.start()
     thread_send_figuras = threading.Thread(target=send_figuras)
     thread_send_figuras.start()
+    thead_print_espacio_aereo = threading.Thread(target=print_espacio_aereo)
+    thead_print_espacio_aereo.start()
 
 
 print("[STARTING] Engine inicializándose...")
