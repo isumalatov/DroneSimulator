@@ -206,14 +206,14 @@ def send_figuras():
                                 send_figura(figura)
                                 engine.moviendose = True
                                 sent_figuras.append(figura)
-                                engine.drones_en_posicion = []
                                 break
                         except KafkaError as e:
                             handle_error(e)
             sleep(10)  # wait for 10 seconds before checking for new figuras
             if len(sent_figuras) == len(engine.figuras):
-                print("Todas las figuras han sido enviadas")
+                print("Todas las figuras han sido enviadas, vuelta a la base")
                 break
+
     finally:
         producer.close()
 
@@ -232,13 +232,14 @@ def process_position_message(posicion):
         if dron_estado == "POSITIONED":
             engine.drones_en_posicion.append(dron_id)
         if len(engine.drones_en_posicion) == len(engine.drones):
+            engine.drones_en_posicion = []
             sleep(5)
             engine.moviendose = False
 
 
 def print_espacio_aereo():
-    for i in range(20):
-        print(engine.espacio_aereo[i])
+    for row in engine.espacio_aereo:
+        print("[" + " ".join(row) + "]")
     print("\n")
 
 
@@ -247,7 +248,7 @@ def read_positions():
         "posiciones",
         bootstrap_servers=[f"{IP_BROKER}:{PORT_BROKER}"],
         value_deserializer=lambda x: json.loads(x.decode("utf-8")),
-        group_id="my-group",
+        auto_offset_reset="latest",
     )
     try:
         while True:
@@ -256,9 +257,8 @@ def read_positions():
                 for message in consumer_posiciones:
                     # Procesar el mensaje
                     posicion = message.value
+                    print(f"Mensaje recibido: {posicion}")
                     process_position_message(posicion)
-                    # Confirmar el mensaje
-                    consumer_posiciones.commit()
             except KafkaError as e:
                 handle_error(e)
     finally:

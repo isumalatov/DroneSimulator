@@ -19,7 +19,6 @@ class Drone:
         self.autentificado = False
         self.posicion = [0, 0]
         self.posicion_final = [0, 0]
-        self.moviendome = False
 
 
 dron = Drone()
@@ -53,7 +52,7 @@ def send(msg, client):
     client.send(message)
 
 
-def send_figura(posicion):
+def send_posicion(posicion):
     producer.send("posiciones", value=posicion)
     producer.flush()
 
@@ -65,15 +64,18 @@ def handle_error(e):
 
 def process_figura_message(figura):
     if figura:
-        for drone in figura["Drones"]:
-            if str(drone["ID"]) == dron.id:
-                pos_x, pos_y = map(int, drone["POS"].split(","))
-                dron.posicion_final = [pos_x, pos_y]
-                move_to_position()
+        if figura["Nombre"] == "BASE":
+            dron.posicion_final = [0, 0]
+            move_to_position()
+        else:
+            for drone in figura["Drones"]:
+                if str(drone["ID"]) == dron.id:
+                    pos_x, pos_y = map(int, drone["POS"].split(","))
+                    dron.posicion_final = [pos_x, pos_y]
+                    move_to_position()
 
 
 def move_to_position():
-    dron.moviendome = True
     while True:
         if dron.posicion_final != dron.posicion:
             if dron.posicion_final[0] > dron.posicion[0]:
@@ -89,29 +91,26 @@ def move_to_position():
                 "POS": f"{dron.posicion[0]},{dron.posicion[1]}",
                 "STATE": "MOVING",
             }
-            print(posicion)
+            sleep(1)
             while True:
                 try:
-                    send_figura(posicion)
+                    send_posicion(posicion)
                     break
                 except KafkaError as e:
                     handle_error(e)
-            sleep(1)
         else:
             posicion = {
                 "ID": dron.id,
                 "POS": f"{dron.posicion[0]},{dron.posicion[1]}",
                 "STATE": "POSITIONED",
             }
-            print(posicion)
             while True:
                 try:
-                    send_figura(posicion)
+                    send_posicion(posicion)
                     break
                 except KafkaError as e:
                     handle_error(e)
             break
-    dron.moviendome = False
 
 
 def read_figuras():
@@ -119,7 +118,7 @@ def read_figuras():
         "destinos",
         bootstrap_servers=[IP_BROKER + ":" + str(PORT_BROKER)],
         value_deserializer=lambda x: json.loads(x.decode("utf-8")),
-        group_id="drone-" + str(dron.id),
+        auto_offset_reset="latest",
     )
     try:
         while True:
@@ -128,9 +127,9 @@ def read_figuras():
                 for message in consumer_destinos:
                     # Procesar el mensaje
                     figura = message.value
+                    print("Recibo del Engine:", figura)
+                    print("\n")
                     process_figura_message(figura)
-                    # Confirmar el mensaje
-                    consumer_destinos.commit()
             except KafkaError as e:
                 handle_error(e)
     finally:
