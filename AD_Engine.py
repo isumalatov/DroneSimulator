@@ -19,6 +19,7 @@ class Engine:
         self.started = False
         self.drones = []
         self.drones_en_posicion = []
+        self.drones_figura = 0
         self.moviendose = False
         self.temperatura = None
 
@@ -219,6 +220,7 @@ def send_figuras():
                             else:                         
                                 if engine.moviendose == False:
                                     send_figura(figura)
+                                    engine.drones_figura = len(figura["Drones"])
                                     engine.moviendose = True
                                     sent_figuras.append(figura)
                                     break
@@ -238,39 +240,34 @@ def process_position_message(posicion):
         dron_id = posicion["ID"]
         dron_posicion_x, dron_posicion_y = map(int, posicion["POS"].split(","))
         dron_estado = posicion["STATE"]
-        with (
-            espacio_aereo_lock
-        ):  # Adquirir el lock antes de modificar engine.espacio_aereo
-            for i in range(20):
-                for j in range(20):
-                    if engine.espacio_aereo[i][j] == dron_id:
-                        engine.espacio_aereo[i][j] = " "
-            engine.espacio_aereo[dron_posicion_x][dron_posicion_y] = dron_id
-            producer.send("espacios", value=engine.espacio_aereo)
+        for i in range(20):
+            for j in range(20):
+                if engine.espacio_aereo[i][j] == dron_id:
+                    engine.espacio_aereo[i][j] = " "
+        engine.espacio_aereo[dron_posicion_x][dron_posicion_y] = dron_id
+        producer.send("espacios", value=engine.espacio_aereo)
+        print_espacio_aereo()
         if dron_estado == "POSITIONED":
             engine.drones_en_posicion.append(dron_id)
-        if len(engine.drones_en_posicion) == len(engine.drones):
+        if len(engine.drones_en_posicion) == len(engine.drones_figura):
             sleep(5)
             engine.drones_en_posicion = []
             engine.moviendose = False
 
 
 def print_espacio_aereo():
-    while True:
-        if os.name == "nt":
-            os.system("cls")
-        with espacio_aereo_lock:  # Adquirir el lock antes de leer engine.espacio_aereo
-            for row in engine.espacio_aereo:
-                row_str = "["
-                for cell in row:
-                    if cell in engine.drones_en_posicion:
-                        row_str += GREEN + cell + RESET + " "
-                    else:
-                        row_str += RED + cell + RESET + " "
-                row_str += "]"
-                print(row_str)
-        print("\n")
-        sleep(0.2)
+    if os.name == "nt":
+        os.system("cls")
+    for row in engine.espacio_aereo:
+        row_str = "["
+        for cell in row:
+            if cell in engine.drones_en_posicion:
+                row_str += GREEN + cell + RESET + " "
+            else:
+                row_str += RED + cell + RESET + " "
+        row_str += "]"
+        print(row_str)
+    print("\n")
 
 
 def read_positions():
@@ -332,8 +329,6 @@ def start():
     thread_read_positions.start()
     thread_send_figuras = threading.Thread(target=send_figuras)
     thread_send_figuras.start()
-    thead_print_espacio_aereo = threading.Thread(target=print_espacio_aereo)
-    thead_print_espacio_aereo.start()
 
 
 print("[STARTING] Engine inicializándose...")

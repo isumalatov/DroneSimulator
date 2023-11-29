@@ -72,7 +72,7 @@ def process_figura_message(figura):
             for drone in figura["Drones"]:
                 if str(drone["ID"]) == dron.id:
                     pos_x, pos_y = map(int, drone["POS"].split(","))
-                    dron.posicion_final = [pos_x, pos_y]
+                    dron.posicion_final = [pos_y, pos_x]
                     move_to_position()
 
 
